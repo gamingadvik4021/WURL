@@ -25,6 +25,39 @@
             align-items: center;
             min-height: 100vh;
             box-sizing: border-box;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* Copy Button Overlay Styling */
+        #copy-shortcut-bar {
+            width: 100%;
+            max-width: 750px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .copy-btn {
+            background: var(--accent-color);
+            color: var(--bg-color);
+            border: none;
+            padding: 10px 18px;
+            font-size: 13px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 12px rgba(0, 255, 204, 0.3);
+            transition: transform 0.1s ease, background-color 0.2s ease;
+        }
+
+        .copy-btn:hover {
+            background: #00d1af;
+        }
+
+        .copy-btn:active {
+            transform: scale(0.97);
         }
 
         .game-container {
@@ -193,16 +226,19 @@
 </head>
 <body>
 
+<div id="copy-shortcut-bar">
+    <button class="copy-btn" onclick="copyEntirePageCode()">Copy Raw Code</button>
+</div>
+
 <div class="game-container">
     <h1>Flight 666: Monster City Survival</h1>
     
     <div class="dashboard">
-        <div class="stat">Hull Integrity: <span id="hull">100%</span></div>
-        <div class="stat">Fuel Level: <span id="fuel">100%</span></div>
-        <div class="stat">Wallet: <span id="coins">150 Coins</span></div>
-        <div class="stat">Passengers: <span id="passengers">10 Alive</span></div>
-        <div class="stat">Happiness: <span id="happiness">80%</span></div>
-        <div class="stat">Current Zone: <span id="zone">Border</span></div>
+        <div class="stat">Hull: <span id="hull">100%</span></div>
+        <div class="stat">Fuel: <span id="fuel">100%</span></div>
+        <div class="stat">Credits: <span id="coins">150</span></div>
+        <div class="stat">Survivors: <span id="passengers">10</span></div>
+        <div class="stat">Zone: <span id="zone">Border</span></div>
     </div>
 
     <div class="layout">
@@ -212,81 +248,84 @@
         </div>
 
         <div class="side-panel">
-            <h3>Pilot's Cabin Inventory</h3>
+            <h3>Inventory</h3>
             <div class="inventory-list">
-                <div class="inventory-item">🥪 Sandwiches: <span id="inv-sandwiches">20</span></div>
-                <div class="inventory-item">⚡ EMP Torpedoes: <span id="inv-emp">0</span></div>
-                <div class="inventory-item">🔥 Plasma Cannons: <span id="inv-plasma">0</span></div>
-                <div class="inventory-item">📦 Wing Parts Spawned: <span id="inv-parts">0</span></div>
-                <div class="inventory-item">⛽ Fuel Jugs Spawned: <span id="inv-fuel">0</span></div>
+                <div class="inventory-item">🥪 Food: <span id="inv-sandwiches">20</span></div>
+                <div class="inventory-item">⚡ EMP: <span id="inv-emp">0</span></div>
+                <div class="inventory-item">🔥 Plasma: <span id="inv-plasma">0</span></div>
             </div>
             
-            <div class="action-row">
-                <button class="btn small-btn" id="feed-btn" onclick="feedPassengers()">Feed Sandwich</button>
-            </div>
+            <button class="btn small-btn" onclick="feedPassengers()">Use Food</button>
 
-            <h3 style="margin-top: 15px;">Airdrop Market</h3>
+            <h3 style="margin-top: 15px;">Shop</h3>
             <div class="shop-grid">
-                <button class="shop-btn" id="buy-sandwich" onclick="buyItem('sandwich')"><span>Buy 5x Sandwiches</span> <span>$20</span></button>
-                <button class="shop-btn" id="buy-emp" onclick="buyItem('emp')"><span>Buy Pacific EMP Torpedo</span> <span>$40</span></button>
-                <button class="shop-btn" id="buy-plasma" onclick="buyItem('plasma')"><span>Buy Pacific Plasma Cannon</span> <span>$60</span></button>
-                <button class="shop-btn" id="buy-repair" onclick="buyItem('repair')"><span>Buy Repair Kit (Spawns on Wing)</span> <span>$50</span></button>
-                <button class="shop-btn" id="buy-fuel" onclick="buyItem('fuel')"><span>Buy Fuel Jug (Spawns on Wing)</span> <span>$40</span></button>
+                <button class="shop-btn" onclick="buyItem('emp')"><span>EMP</span> <span>$40</span></button>
+                <button class="shop-btn" onclick="buyItem('plasma')"><span>Plasma</span> <span>$60</span></button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    let hull = 100;
-    let fuel = 100;
-    let coins = 150;
-    let passengers = 10;
-    let happiness = 80;
-    let currentStage = "start";
-    
-    let inventory = {
-        sandwiches: 20,
-        emp: 0,
-        plasma: 0,
-        spawnedParts: 0,
-        spawnedFuel: 0
+    // Game State
+    let state = {
+        hull: 100, fuel: 100, coins: 150, passengers: 10,
+        stage: "start",
+        inv: { sandwiches: 20, emp: 0, plasma: 0 }
     };
 
+    // Story Logic
     const storyData = {
         start: {
-            text: "Welcome to the cockpit, Captain! Flight 666 is officially breaching the airspace over the Monster City. The storm clouds are radioactive, and fuel is burning fast. Use your credits to arm the plane and keep passengers fed before making life-or-death decisions.",
+            text: "Welcome to Flight 666 over Monster City. Radioactive storms ahead. Choose path.",
+            zone: "Border",
             options: [
-                { text: "Fly straight up into the storm clouds where Giant Sky-Serpents hunt.", next: "skySerpents" },
-                { text: "Fly low through downtown skyscraper valleys where Mutant Gargoyles wait.", next: "gargoyles" }
-            ],
-            zone: "City Border",
-            fuelCost: 10,
-            happyChange: 0,
-            reward: 50
+                { text: "Fly into storm clouds (High Fuel)", next: "storm", fuel: -20 },
+                { text: "Dive through skyscrapers (High Damage)", next: "sky", hull: -15 }
+            ]
         },
-        skySerpents: {
-            text: "CRASH! A radioactive Pacific Sky-Serpent twists itself around your left wing! The hull is cracking under its weight. If you bought weapons, you can fire them now, or you can risk a dangerous roll.",
+        storm: {
+            text: "Lightning strikes! A Behemoth locks on.",
+            zone: "Radioactive Stratum",
             options: [
-                { text: "Fire Pacific Plasma Cannon (Requires 1 Plasma Cannon)", next: "serpentDead", requireItem: "plasma" },
-                { text: "Do a violent barrel roll to throw it off (Damages hull badly!)", next: "serpentRoll" }
-            ],
-            zone: "Upper Atmosphere",
-            fuelCost: 15,
-            happyChange: -15,
-            reward: 60
+                { text: "Use EMP Torpedo", next: "victory", require: "emp", consume: "emp" },
+                { text: "Out-maneuver", next: "victory", fuel: -30, hull: -10 }
+            ]
         },
-        serpentDead: {
-            text: "BOOM! The Pacific Plasma Cannon vaporizes the beast! The passengers cheer in relief and hand you some spare change. However, you are burning fuel quickly trying to escape the radioactive radiation cloud.",
+        sky: {
+            text: "Gargoyles attack! Intense maneuvering required.",
+            zone: "Outer Rim",
             options: [
-                { text: "Push forward into the Neon Robot District", next: "robotDistrict" }
-            ],
-            zone: "Upper Atmosphere",
-            fuelCost: 20,
-            happyChange: 15,
-            reward: 80
+                { text: "Fire Plasma Cannon", next: "victory", require: "plasma", consume: "plasma" },
+                { text: "Brace for impact", next: "victory", hull: -30 }
+            ]
         },
-        serpentRoll: {
-            text: "You shake the serpent off, but the severe twisting breaks the plane structure! The hull status is dangerous. You must buy a Repair Kit from the store, go out on the wing to fetch it, and apply it before moving forward!",
-            options: [
-{ text: "Go out onto the wing to retrieve the spawned items and repair/refuel", next: "wingRepair", requireWingItems: true },{ text: "Ignore the damage and fly blindly forward anyway", next: "recklessCrash" }],zone: "Storm Core",damage: 50,fuelCost: 15,happyChange: -30,reward: 40},gargoyles: {text: "Thump! Thump! Mutant Gargoyles smash onto the plane wings and begin shredding the mechanics. Passengers are screaming in panic inside the cabin!",options: [{ text: "Launch a Pacific EMP Torpedo to scramble their brains (Requires 1 EMP)", next: "gargoylesFried", requireItem: "emp" },{ text: "Activate de-icing system chemical sprays", next: "gargoylesAcid" }],zone: "Downtown Skyline",fuelCost: 15,happyChange: -20,reward: 50},gargoylesFried: {text: "The EMP wave hits perfectly! The monsters drop off like stones. The passengers feel highly secure.",options: [{ text: "Navigate towards the glowing evacuation safe runway", next: "runwayApproach" }],zone: "Industrial Zone",fuelCost: 15,happyChange: 20,reward: 100},gargoylesAcid: {text: "The chemical spray gets some of them, but one gargoyle retaliates by smashing a fuel pipe before dying! Your fuel tank is leaking rapidly!",options: [{ text: "Climb out onto the wing to fetch a purchased fuel jug and fix the leak", next: "wingRepair", requireWingItems: true },{ text: "Try to glide without fixing it", next: "recklessCrash" }],zone: "Downtown Skyline",damage: 20,fuelCost: 40,happyChange: -15,reward: 40},wingRepair: {text: "You strap into a safety harness and step directly onto the windy, terrifying plane wing! You grab all the airdropped materials you bought from the shop. The plane is restored, and the passengers look out the window in absolute awe at your bravery!",options: [{ text: "Climb back inside the cockpit and fly to the rescue zone", next: "runwayApproach" }],zone: "Outside on Wing",fuelCost: 5,happyChange: 25,reward: 50,resolvesDamage: true},runwayApproach: {text: "You can see the safe tactical runway ahead! But a gigantic atomic mutant kaiju stands right over the runway. This is the final stretch.",options: [{ text: "Use a Pacific Plasma Cannon to blast a hole through its chest (Requires 1 Plasma)", next: "victory" },{ text: "Attempt to fly straight through its open legs!", next: "legsDodge" }],zone: "Final Approach",fuelCost: 15,happyChange: -10,reward: 100},robotDistrict: {text: "Giant security laser towers fire warning shots near your cockpit. Your fuel meters are blinking red.",options: [{ text: "Buy fuel, climb out to the wing to collect it, and prepare for final descent", next: "wingRepair", requireWingItems: true },{ text: "Try to make it on fumes", next: "recklessCrash" }],zone: "Neon District",fuelCost: 20,happyChange: -10,reward: 60},legsDodge: {text: "You dive low, clipping the beast's foot! The impact rattles the cabin, but you make it through the gap intact!",options: [{ text: "Touch down safely", next: "victory" }],zone: "Final Approach",damage: 30,fuelCost: 5,happyChange: -10,reward: 0},recklessCrash: {text: "Without executing repairs or grabbing the required items from the wing, the plane experiences catastrophic engine failure and spirals down. Game Over.",options: [{ text: "Respawn & Restart Flight", next: "restart" }],zone: "CRASHED",damage: 100},victory: {text: "Touchdown! You successfully landed the aircraft in safe territory. Let's look at the final survival review of your flight crew and passengers!",options: [{ text: "Fly a New Route (Restart)", next: "restart" }],zone: "SAFE HAVEN"}};function buyItem(item) {if (item === 'sandwich' && coins >= 20) {coins -= 20;inventory.sandwiches += 5;updateStoryText("🛒 Purchased 5 Sandwiches! They immediately materialised into your pilot storage space.");} else if (item === 'emp' && coins >= 40) {coins -= 40;inventory.emp += 1;updateStoryText("🛒 Purchased 1 Pacific EMP Torpedo! It loaded straight into the weapons bay.");} else if (item === 'plasma' && coins >= 60) {coins -= 60;inventory.plasma += 1;updateStoryText("🛒 Purchased 1 Pacific Plasma Cannon! It connected to the front turret.");} else if (item === 'repair' && coins >= 50) {coins -= 50;inventory.spawnedParts += 1;updateStoryText("📦 Bought a Repair Kit! An automated system dropped it right onto the left wing. You must take a wing-walk option to grab it!");} else if (item === 'fuel' && coins >= 40) {coins -= 40;inventory.spawnedFuel += 1;updateStoryText("⛽ Bought a Fuel canister! It holds on the wing mounts. Choose a wing-walk option to grab and dump it in the tank.");}updateUI();}function feedPassengers() {if (inventory.sandwiches > 0 && passengers > 0) {inventory.sandwiches--;happiness = Math.min(100, happiness + 8);updateStoryText("🥪 You distributed a fresh sandwich to the cabin. The passengers love the service!");updateUI();}}function updateStoryText(msg) {document.getElementById("story-text").innerHTML = <p style="color:var(--warning-color); font-weight:bold;">${msg}</p> + storyData[currentStage].text;}function selectOption(nextStage) {if (nextStage === "restart") {hull = 100;fuel = 100;coins = 150;passengers = 10;happiness = 80;inventory = { sandwiches: 20, emp: 0, plasma: 0, spawnedParts: 0, spawnedFuel: 0 };currentStage = "start";renderStage();return;}const stage = storyData[currentStage];const selectedOpt = stage.options.find(o => o.next === nextStage);if (selectedOpt && selectedOpt.requireItem) {inventory[selectedOpt.requireItem]--;}currentStage = nextStage;const newStage = storyData[currentStage];if (newStage.damage) hull = Math.max(0, hull - newStage.damage);if (newStage.fuelCost) fuel = Math.max(0, fuel - newStage.fuelCost);if (newStage.happyChange) happiness = Math.max(0, Math.min(100, happiness + newStage.happyChange));if (newStage.reward) coins += newStage.reward;if (newStage.resolvesDamage) {if (inventory.spawnedParts > 0) {hull = Math.min(100, hull + (inventory.spawnedParts * 40));inventory.spawnedParts = 0;}if (inventory.spawnedFuel > 0) {fuel = Math.min(100, fuel + (inventory.spawnedFuel * 40));inventory.spawnedFuel = 0;}}if (happiness < 30) {passengers = Math.max(0, passengers - 2);}if (fuel <= 0 || hull <= 0) {hull = 0;currentStage = "recklessCrash";}renderStage();}function renderStage() {const stage = storyData[currentStage];let headerText = "";if (currentStage === "victory") {headerText = 🏆 **SUCCESS!** Final Report: ${passengers} passengers made it alive with ${happiness}% final score! <br><br>;}document.getElementById("story-text").innerHTML = headerText + stage.text;document.getElementById("zone").innerText = stage.zone;const box = document.getElementById("options-box");box.innerHTML = "";stage.options.forEach(opt => {const btn = document.createElement("button");btn.className = "btn";btn.innerText = opt.text;let disabled = false;if (opt.requireItem && inventory[opt.requireItem] <= 0) {btn.innerText +=  (LOCKED - Requires Pacific ${opt.requireItem.toUpperCase()});disabled = true;}if (opt.requireWingItems && inventory.spawnedParts === 0 && inventory.spawnedFuel === 0) {btn.innerText +=  (LOCKED - You must buy fuel/parts from store to spawn them on the wing first!);disabled = true;}btn.disabled = disabled;btn.onclick = () => selectOption(opt.next);box.appendChild(btn);});updateUI();}function updateUI() {document.getElementById("hull").innerText = hull + "%";document.getElementById("fuel").innerText = fuel + "%";document.getElementById("coins").innerText = coins + " Coins";document.getElementById("passengers").innerText = passengers + " Alive";document.getElementById("happiness").innerText = happiness + "%";document.getElementById("inv-sandwiches").innerText = inventory.sandwiches;document.getElementById("inv-emp").innerText = inventory.emp;document.getElementById("inv-plasma").innerText = inventory.plasma;document.getElementById("inv-parts").innerText = inventory.spawnedParts;document.getElementById("inv-fuel").innerText = inventory.spawnedFuel;document.getElementById("hull").className = hull < 40 ? "critical" : "";document.getElementById("fuel").className = fuel < 30 ? "critical" : "";document.getElementById("happiness").className = happiness < 40 ? "critical" : "";document.getElementById("feed-btn").disabled = (inventory.sandwiches <= 0 || passengers <= 0);document.getElementById("buy-sandwich").disabled = (coins < 20);document.getElementById("buy-emp").disabled = (coins < 40);document.getElementById("buy-plasma").disabled = (coins < 60);document.getElementById("buy-repair").disabled = (coins < 50);document.getElementById("buy-fuel").disabled = (coins < 40);}renderStage();
+        victory: {
+            text: "Mission Accomplished! You survived Monster City.",
+            zone: "Safe Zone",
+            options: []
+        },
+        over: {
+            text: "Flight 666 has gone dark. Game Over.",
+            zone: "CRASHED",
+            options: []
+        }
+    };
+
+    function updateUI() {
+        document.getElementById("hull").innerText = state.hull + "%";
+        document.getElementById("fuel").innerText = state.fuel + "%";
+        document.getElementById("coins").innerText = state.coins;
+        document.getElementById("passengers").innerText = state.passengers;
+        document.getElementById("zone").innerText = storyData[state.stage].zone;
+        document.getElementById("inv-sandwiches").innerText = state.inv.sandwiches;
+        document.getElementById("inv-emp").innerText = state.inv.emp;
+        document.getElementById("inv-plasma").innerText = state.inv.plasma;
+
+        if (state.hull <= 0 || state.fuel <= 0) state.stage = "over";
+    }
+
+    function renderStage() {
+        updateUI();
+        const stage = storyData[state.stage];
+document.getElementById("story-text").innerText = stage.text;const box = document.getElementById("options-box");box.innerHTML = "";stage.options.forEach(opt => {const btn = document.createElement("button");btn.className = "btn";btn.innerText = opt.text;if (opt.require && state.inv[opt.require] <= 0) btn.disabled = true;btn.onclick = () => {if (opt.fuel) state.fuel += opt.fuel;if (opt.hull) state.hull += opt.hull;if (opt.consume) state.inv[opt.consume]--;state.stage = opt.next;renderStage();};box.appendChild(btn);});if (stage.options.length === 0) {const rBtn = document.createElement("button");rBtn.className = "btn";rBtn.innerText = "Restart";rBtn.onclick = () => location.reload();box.appendChild(rBtn);}}function buyItem(item) {if (item === 'emp' && state.coins >= 40) { state.coins -= 40; state.inv.emp++; }if (item === 'plasma' && state.coins >= 60) { state.coins -= 60; state.inv.plasma++; }updateUI();}function feedPassengers() {if (state.inv.sandwiches > 0) {state.inv.sandwiches--;state.passengers += 2;updateUI();}}function copyEntirePageCode() {const docText = "\n" + document.documentElement.outerHTML;navigator.clipboard.writeText(docText);const btn = document.querySelector(".copy-btn");btn.innerText = "Copied!";setTimeout(() => btn.innerText = "Copy Raw Code", 2000);}renderStage();{content: }
