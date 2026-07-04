@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monster City Flight Survival</title>
+    <style>
+        :root {
+            --bg-color: #0d0d1a;
+            --panel-bg: #1a1a2e;
+            --accent-color: #00ffcc;
+            --danger-color: #ff3366;
+            --text-color: #e6e6fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .game-container {
+            background-color: var(--panel-bg);
+            border: 2px solid var(--accent-color);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.2);
+            text-align: center;
+        }
+
+        h1 {
+            color: var(--accent-color);
+            margin-top: 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 24px;
+        }
+
+        .status-panel {
+            display: flex;
+            justify-content: space-around;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .status-item {
+            color: var(--accent-color);
+        }
+
+        #story-text {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            min-height: 100px;
+            text-align: left;
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .btn {
+            background-color: transparent;
+            color: var(--text-color);
+            border: 2px solid var(--text-color);
+            padding: 15px 20px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+
+        .btn:hover {
+            background-color: var(--accent-color);
+            color: var(--bg-color);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+        }
+
+        .btn.danger:hover {
+            background-color: var(--danger-color);
+            border-color: var(--danger-color);
+            box-shadow: 0 0 10px rgba(255, 51, 102, 0.5);
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <h1>Flight 666: Monster City</h1>
+    
+    <div class="status-panel">
+        <div>Plane Integrity: <span id="hull-status" class="status-item">100%</span></div>
+        <div>Current Zone: <span id="zone-status" class="status-item">Approaching</span></div>
+    </div>
+
+    <div id="story-text">
+        The cockpit alarms are blaring. Dark purple clouds blanket the skyline of the Monster City ahead. You are the captain. Make your choice to survive.
+    </div>
+
+    <div class="options-container" id="options-box">
+        <!-- Buttons will be dynamically inserted here -->
+    </div>
+</div>
+
+<script>
+    const storyData = {
+        start: {
+            text: "You fly into the perimeter. The radar flashes red. Gigantic radioactive storm clouds loom above, while burning skyscrapers crumble below.",
+            options: [
+                { text: "Fly high into the storm clouds where electrified sky-serpents hunt.", next: "skySerpents" },
+                { text: "Fly low between skyscrapers where mutant gargoyles leap from roofs.", next: "gargoyles" }
+            ],
+            hull: 100,
+            zone: "City Border"
+        },
+        skySerpents: {
+            text: "Lightning flashes! A massive sky-serpent constricts the left wing, cracking the frame. You need to shake it off immediately.",
+            options: [
+                { text: "Dive straight down into an inverted roll to snap the beast off.", next: "diveSuccess" },
+                { text: "Overload the engine thrusters to fry the snake with jet wash.", next: "fryFailure" }
+            ],
+            hull: 75,
+            zone: "Upper Atmosphere"
+        },
+        gargoyles: {
+            text: "Three heavy mutant gargoyles land right on the cockpit windshield, scratching furiously at the glass. Vision is zero.",
+            options: [
+                { text: "Activate windshield de-icers to spray boiling chemical fluid at them.", next: "spraySuccess" },
+                { text: "Slam the brakes (air brakes) hoping they fly off forward.", next: "brakeFailure" }
+            ],
+            hull: 80,
+            zone: "Downtown Skyline"
+        },
+        diveSuccess: {
+            text: "Success! The gravity pull rips the serpent away. However, you are now flying blindingly fast toward a radioactive sludge volcano.",
+            options: [
+                { text: "Deploy the landing gear early to act as an aerodynamic drag brake.", next: "winEnd" },
+                { text: "Pull up hard and risk snapping the compromised wings completely.", next: "crashEnd" }
+            ],
+            hull: 60,
+            zone: "Volcano Alley"
+        },
+        spraySuccess: {
+            text: "The acid spray blinds the monsters, sending them screaming into the abyss. Suddenly, an EMP blast from a giant robot tower shuts down your electronic steering.",
+            options: [
+                { text: "Switch to manual mechanical pulleys and muscle through the turn.", next: "winEnd" },
+                { text: "Attempt to reboot the main flight computer while gliding blind.", next: "crashEnd" }
+            ],
+            hull: 75,
+            zone: "Industrial Sector"
+        },
+        fryFailure: {
+            text: "The engine overloads and explodes. The serpent survives, but your plane loses total thrust and spirals into the radioactive wastes below.",
+            options: [{ text: "Restart Game", next: "start" }],
+            hull: 0,
+            zone: "CRASHED"
+        },
+        brakeFailure: {
+            text: "The sudden deceleration causes the plane to stall. The gargoyles smash through the glass before flying off. The cockpit depressurizes.",
+            options: [{ text: "Restart Game", next: "start" }],
+            hull: 0,
+            zone: "DESTROYED"
+        },
+        crashEnd: {
+            text: "The structural load is too much. The wings snap cleanly off, and the fuselage plunges straight into the monster nest below. Game Over.",
+            options: [{ text: "Try Again", next: "start" }],
+            hull: 0,
+            zone: "CRASHED"
+        },
+        winEnd: {
+            text: "Incredible piloting! You clear the final obstacle, break through the toxic cloud barrier, and emerge into clear, safe blue skies. You survived the Monster City!",
+            options: [{ text: "Play Again", next: "start" }],
+            hull: "100%",
+            zone: "SAFE AIRSPACE"
+        }
+    };
+
+    function updateGame(stateKey) {
+        const state = storyData[stateKey];
+        
+        document.getElementById("story-text").innerText = state.text;
+        document.getElementById("hull-status").innerText = state.hull + (typeof state.hull === 'number' ? "%" : "");
+        document.getElementById("zone-status").innerText = state.zone;
+
+        // Change color based on damage
+        if (state.hull === 0) {
+            document.getElementById("hull-status").style.color = "var(--danger-color)";
+        } else {
+            document.getElementById("hull-status").style.color = "var(--accent-color)";
+        }
+
+        const optionsBox = document.getElementById("options-box");
+        optionsBox.innerHTML = "";
+
+        state.options.forEach(opt => {
+            const button = document.createElement("button");
+            button.innerText = opt.text;
+            button.classList.add("btn");
+            
+            if (state.hull === 0 || state.zone === "SAFE AIRSPACE") {
+                button.classList.add("danger");
+            }
+
+            button.onclick = () => updateGame(opt.next);
+            optionsBox.appendChild(button);
+        });
+    }
+
+    // Initialize game
+    updateGame("start");
+</script>
+
+</body>
+</html>
